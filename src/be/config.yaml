@@ -1,0 +1,10 @@
+# -- CONFIG FILE --
+
+# PAGES
+pages:
+  - HOME
+  - OVERVIEW
+  - SIMULATOR
+
+# MAIN PAGE
+main_page: HOME

@@ -7,13 +7,12 @@ from src.fe.support_functions import setup_sidebar
 from src.fe.styles import HIDE_SIDEBAR_NAV
 
 
-
 ################
 # --- SET UP ---
 ################
 
 # --- PAGE CONFIG --- 
-st.set_page_config(page_title="SIMULATOR", layout="wide")
+st.set_page_config(page_title="TECHNOLOGY", layout="wide")
 
 # --- STYLES ---
 st.markdown(HIDE_SIDEBAR_NAV, unsafe_allow_html=True)
@@ -32,11 +31,12 @@ selected_page = setup_sidebar(
 if selected_page == "HOME":
     st.switch_page("HOME.py")
 elif selected_page == "TECHNOLOGY":
-    st.switch_page("pages/technology.py")
+    st.title(selected_page)
 elif selected_page == "OVERVIEW":
     st.switch_page("pages/overview.py")
 elif selected_page == "SIMULATOR":
-    st.title(selected_page)
+    st.switch_page("pages/simulator.py")
+
 
 
 

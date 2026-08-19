@@ -31,10 +31,13 @@ selected_page = setup_sidebar(
 # Navigation on click
 if selected_page == "HOME":
     st.switch_page("HOME.py")
+elif selected_page == "TECHNOLOGY":
+    st.switch_page("pages/technology.py")
 elif selected_page == "OVERVIEW":
     st.title(selected_page)
 elif selected_page == "SIMULATOR":
     st.switch_page("pages/simulator.py")
+
 
 
 

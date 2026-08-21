@@ -41,16 +41,16 @@ elif selected_page == "SIMULATOR":
 # --- LOGO-TITLE ---
 col1,col2,col3 = st.columns([1,2,1])
 with col2:
-    st.image(f"{os.getcwd()}/LOGO.png")
+    st.image(f"{os.getcwd()}/images/FSRU.png")
 
 st.divider()
 
 # --- DESCRIPTION ---
 col1, col2 = st.columns([1,1])
 with col1:
-    st.header("Welcome to FSRU for Wärtsilä!")
+    st.header("Welcome to CCC for FSRU!")
     st.info("""
-        This web page aims to present the potential benefits of implementing Cryogenic Carbon Capture on FSRU vessels.  \n
+        This web app aims to present the potential benefits of implementing Cryogenic Carbon Capture on FSRU vessels.  \n
         
         Get started by exploring the pages!  
         """)
@@ -83,3 +83,20 @@ with col2:
             st.session_state.selected_page = "SIMULATOR"
             selected_page = "SIMULATOR"
             st.switch_page("pages/simulator.py")
+
+st.divider()
+
+# --- FOOTER ---
+col1, col2, col3, col4 = st.columns([0.5,1,1,1])
+
+with col1: 
+    st.subheader("CONTACT")
+with col2:
+    st.markdown("**Mail**")
+    st.markdown("📩 biasutti18@gmail.com")
+with col3:
+    st.markdown("**Link**")
+    st.caption("🌐 https://fsruccc.streamlit.app")
+with col4: 
+    st.markdown("**GitHub**")
+    st.caption("</>  https://github.com/FoliaStream/FSRU_CCC")

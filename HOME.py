@@ -54,3 +54,32 @@ with col1:
         
         Get started by exploring the pages!  
         """)
+    
+with col2:
+    st.header("PAGES:")
+    with st.expander("**TECHNOLOGY**"):
+        st.subheader("Cryogenic Carbon Capture Technology")
+        st.info("Presentation & Explanation")
+    
+        if st.button("Explore", key="home_technology"):
+            st.session_state.selected_page = "TECHNOLOGY"
+            selected_page = "TECHNOLOGY"
+            st.switch_page("pages/technology.py")
+    
+    with st.expander("**OVERVIEW**"):
+        st.subheader("FSRU Overview")
+        st.info("Fleets Info")
+    
+        if st.button("Explore", key="home_overview"):
+            st.session_state.selected_page = "OVERVIEW"
+            selected_page = "OVERVIEW"
+            st.switch_page("pages/overview.py")
+        
+    with st.expander("**SIMULATOR**"):
+        st.subheader("Financial Model")
+        st.info("Explore Investments Financials")
+    
+        if st.button("Explore", key="home_simulator"):
+            st.session_state.selected_page = "SIMULATOR"
+            selected_page = "SIMULATOR"
+            st.switch_page("pages/simulator.py")

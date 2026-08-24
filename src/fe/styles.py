@@ -19,3 +19,8 @@ SIDEBAR_STYLES = {
     "nav-link": {"font-size": "16px", "text-align": "left", "margin": "0px", "--hover-color": "#E6F0FA", "color": "#005B9F"},
     "nav-link-selected": {"background-color": "#FCA500", "color": "#005B9F"}  # Orange selected state on blue
 }
+
+BACKGROUND_COLOR = "rgb(245, 248, 250)"
+OCEAN_COLOR = "rgb(220, 235, 255)"
+COUNTRY_COLOR = "rgba(0, 80, 200, 0.4)"
+COASTLINE_COLOR = "rgb(0, 80, 200)"

@@ -13,7 +13,7 @@ def setup_sidebar(pages,
     with st.sidebar:
         col1, col2, col3 = st.columns([0.2, 2.4, 0.2])
         with col2:
-            st.image(f"{os.getcwd()}/images/FSRU.png", use_container_width=True)
+            st.image(f"{os.getcwd()}/images/logo.jpg", use_container_width=True)
         
         # Initialize session state for page if it doesn't exist
         if 'selected_page' not in st.session_state:
@@ -49,6 +49,7 @@ def build_world_figure(background_color=BACKGROUND_COLOR,
             mode='markers',
             marker=dict(
                 size=10,
+                symbol='diamond',
                 color='red',
                 line=dict(width=1, color='white')
             ),

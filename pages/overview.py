@@ -4,6 +4,7 @@ import pandas as pd
 import os 
 import yaml
 
+from datetime import datetime
 from streamlit_plotly_events import plotly_events
 from src.fe.support_functions import setup_sidebar, build_world_figure
 from src.fe.styles import HIDE_SIDEBAR_NAV
@@ -76,23 +77,107 @@ with col2:
         # Get vessel info using the index
         vessel_imo = data_fsru.iloc[point_index]['IMO']
         vessel_name = data_fsru.iloc[point_index]['NAME']
+        vessel_capacity = data_fsru.iloc[point_index]['Capacity (m³)']
+        vessel_age = data_fsru.iloc[point_index]['Age']
+        vessel_country = data_fsru.iloc[point_index]['Country']
+        vessel_area = data_fsru.iloc[point_index]['Area']
+        vessel_emission = data_fsru.iloc[point_index]['Estimate CO2']
         vessel_image = f"{os.getcwd()}/db/input/fleet_img/{vessel_imo}.jpg"
+        
+        # Vessel name as header
+        st.markdown(f"### {vessel_name}")
+        
+        # Use columns for better layout
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("IMO", vessel_imo)
+            st.metric("Capacity (m³)", f"{vessel_capacity}")
+            st.metric("Estimated CO2 (ton)", f"{int(vessel_emission)}")
+        with col2:
+            st.metric("Country", vessel_country)
+            st.metric("Area", vessel_area)
+            st.metric("Age", f"{vessel_age} years")
         
         # Display image
         if os.path.exists(vessel_image):
             st.image(vessel_image, use_container_width=True)
-        else:
-            st.warning("Image not found")
-
-        st.write(f"**IMO:** {vessel_imo}")
-        st.write(f"**Name:** {vessel_name}")
     else:
         st.info("Click on a marker to see vessel details")
 
+st.divider()
 
-# Filters
-    # age
-    # hub distance
-    # fleet
-    # continent
-    # capacity
+# FILTERS
+st.subheader("Filters")
+col1, col2 = st.columns([1,2])
+
+with col1:
+    with st.container(border=True):
+        # Store filter values in variables
+        selected_fleet = st.selectbox('Fleet', options=["All"] + list(data_fsru['FLEET'].unique()))
+        selected_country = st.selectbox('Country', options=["All"] + list(data_fsru['Country'].unique()))
+        selected_area = st.selectbox('Area', options=["All"] + list(data_fsru['Area'].unique()))
+        
+        # Age slider
+        min_age = int(data_fsru['Age'].min())
+        max_age = int(data_fsru['Age'].max())
+        age_range = st.select_slider(
+            'Age', 
+            options=range(min_age, max_age + 1), 
+            value=(min_age, max_age)
+        )
+        
+        # Capacity slider
+        min_cap = int(data_fsru['Capacity (m³)'].min())
+        max_cap = int(data_fsru['Capacity (m³)'].max())
+        capacity_range = st.select_slider(
+            'Capacity', 
+            options=range(min_cap, max_cap + 1), 
+            value=(min_cap, max_cap)
+        )
+
+with col2:
+    # st.subheader("Fleet")
+    
+    # Apply filters
+    filtered_data = data_fsru.copy()
+    
+    # Apply categorical filters
+    if selected_fleet != "All":
+        filtered_data = filtered_data[filtered_data['FLEET'] == selected_fleet]
+    if selected_country != "All":
+        filtered_data = filtered_data[filtered_data['Country'] == selected_country]
+    if selected_area != "All":
+        filtered_data = filtered_data[filtered_data['Area'] == selected_area]
+    
+    # Apply range filters
+    filtered_data = filtered_data[
+        (filtered_data['Age'] >= age_range[0]) & 
+        (filtered_data['Age'] <= age_range[1]) &
+        (filtered_data['Capacity (m³)'] >= capacity_range[0]) & 
+        (filtered_data['Capacity (m³)'] <= capacity_range[1])
+    ]
+    
+    # Show number of vessels
+    st.metric("Vessels Found", len(filtered_data))
+    
+    # Display filtered dataframe
+    if not filtered_data.empty:
+        # Select columns to display
+        display_columns = ['IMO', 'NAME', 'FLEET', 'Country', 'Area', 'Age', 'Capacity (m³)']
+        st.dataframe(
+            filtered_data[display_columns],
+            use_container_width=True,
+            height=375,
+            column_config={
+                "IMO": st.column_config.TextColumn("IMO"),
+                "NAME": st.column_config.TextColumn("Vessel Name"),
+                "FLEET": st.column_config.TextColumn("Fleet"),
+                "Country": st.column_config.TextColumn("Country"),
+                "Area": st.column_config.TextColumn("Area"),
+                "Age": st.column_config.NumberColumn("Age (years)"),
+                "Capacity (m³)": st.column_config.NumberColumn("Capacity (m³)", format="%d"),
+            },
+            hide_index=True
+        )
+    else:
+        st.info("No vessels match the selected filters")

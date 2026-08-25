@@ -41,7 +41,7 @@ elif selected_page == "SIMULATOR":
 # --- LOGO-TITLE ---
 col1,col2,col3 = st.columns([1,2,1])
 with col2:
-    st.image(f"{os.getcwd()}/images/FSRU.png")
+    st.image(f"{os.getcwd()}/images/logo.jpg")
 
 st.divider()
 
@@ -100,5 +100,3 @@ with col3:
 with col4: 
     st.markdown("**GitHub**")
     st.caption("</>  https://github.com/FoliaStream/FSRU_CCC")
-
-

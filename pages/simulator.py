@@ -303,7 +303,7 @@ with kpi4:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # --- DETAILED ANALYSIS TABS ---
-tab1, tab2, tab3 = st.tabs(["TCO Trend & Payback Path", "Detailed Projections Data", "Physics & Regulatory Rules"])
+tab1, tab2, tab3 = st.tabs(["TCO Trend & Payback Path", "Detailed Projections Data",  "How This Calculation Works"])
 
 with tab1:
     st.markdown("### Total Cost of Ownership (TCO) Comparison")
@@ -373,18 +373,134 @@ with tab2:
         mime="text/csv"
     )
 
+# with tab3:
+#     st.markdown("### Physical & Regulatory Framework Rules")
+    
+#     st.markdown("""
+#     #### 1. Emissions Physics
+#     *   **Tank-to-Wake (Combustion) Limit:** Flue-gas carbon capture can only isolate emissions generated during actual fuel combustion. It does not touch upstream fuel production (well-to-tank) emissions or fuel handling methane slip.
+#     *   **Baseline Fuel Consumption:** Modeled using the stoichiometric physical factor where burning **1 tonne of LNG fuel releases 2.75 tonnes of $CO_2$**.
+#     *   **Fuel Savings Consistency:** Implementing a fuel savings rate (e.g., 22%) first lowers the fuel consumption, which proportionally reduces both the fuel cost and the generated $CO_2$ before applying the carbon capture factor.
+    
+#     #### 2. Regulatory Calculations
+#     *   **EU ETS Fee:** Calculated at 100% of combustion emissions for the proportion of voyages operating in Europe.
+#     *   **FuelEU Maritime Penalty:** Targets the greenhouse gas intensity of marine fuels (2020 baseline of $91.16\text{ gCO}_2\text{eq/MJ}$). The targets tighten dynamically over time. If a vessel fails compliance, the deficit in Megajoules is converted to VLSFO-equivalent tons and penalized at **€2,400 per VLSFO-equivalent ton**.
+#     *   **IMO Net-Zero Levy (Optional):** Modeled based on the draft base-tier price of ~$100/tCO2e global levy starting in 2028.
+#     *   **CO₂ Disposal Cost:** Cost to permanently store or dispose of captured CO₂ (transport, injection, monitoring). Configurable by the user.
+#     """)
+
 with tab3:
-    st.markdown("### Physical & Regulatory Framework Rules")
-    
+    st.markdown("### How This Calculation Works")
+    st.caption(
+        "A plain-language walkthrough of what the model does, start to finish — "
+        "no formulas required to follow it."
+    )
+
     st.markdown("""
-    #### 1. Emissions Physics
-    *   **Tank-to-Wake (Combustion) Limit:** Flue-gas carbon capture can only isolate emissions generated during actual fuel combustion. It does not touch upstream fuel production (well-to-tank) emissions or fuel handling methane slip.
-    *   **Baseline Fuel Consumption:** Modeled using the stoichiometric physical factor where burning **1 tonne of LNG fuel releases 2.75 tonnes of $CO_2$**.
-    *   **Fuel Savings Consistency:** Implementing a fuel savings rate (e.g., 22%) first lowers the fuel consumption, which proportionally reduces both the fuel cost and the generated $CO_2$ before applying the carbon capture factor.
-    
-    #### 2. Regulatory Calculations
-    *   **EU ETS Fee:** Calculated at 100% of combustion emissions for the proportion of voyages operating in Europe.
-    *   **FuelEU Maritime Penalty:** Targets the greenhouse gas intensity of marine fuels (2020 baseline of $91.16\text{ gCO}_2\text{eq/MJ}$). The targets tighten dynamically over time. If a vessel fails compliance, the deficit in Megajoules is converted to VLSFO-equivalent tons and penalized at **€2,400 per VLSFO-equivalent ton**.
-    *   **IMO Net-Zero Levy (Optional):** Modeled based on the draft base-tier price of ~$100/tCO2e global levy starting in 2028.
-    *   **CO₂ Disposal Cost:** Cost to permanently store or dispose of captured CO₂ (transport, injection, monitoring). Configurable by the user.
+Every year, running the FSRU **as-is** costs money in five buckets: **fuel**, **EU carbon
+tax (ETS)**, **EU fuel-cleanliness penalty (FuelEU)**, **a possible future global carbon
+levy (IMO)**, and **fixed operating costs**. The model adds those five up for every year
+from 2026 to 2050 — that's the **Base** scenario.
+
+Then it asks: *what if, in some year, you bolt a carbon-capture system onto the vessel?*
+That changes some of those five buckets (less fuel burned, less taxable CO₂) but adds two
+new costs (the machine's own upkeep, and disposing of the CO₂ you captured). That's the
+**CCC** scenario.
+
+The difference between the two, year by year, is your **savings**. Subtract the cost of
+buying the machine, and you get a cash-flow story you can judge like any investment: does
+it pay for itself, and how well?
     """)
+
+    st.markdown("#### Step 1 — How much fuel and CO₂ are we even talking about?")
+    st.markdown("""
+You give the model one number: how many tonnes of CO₂ the vessel emits in a year at full
+operation. Everything else is derived from that, using one physical fact from the
+reference paper: **burning 1 tonne of LNG produces 2.75 tonnes of CO₂.**
+
+> fuel burned = CO₂ emitted ÷ 2.75
+
+If the vessel isn't running at full tilt all year, the **Load Factor** scales both numbers
+down proportionally — 85% load means 85% of the fuel and 85% of the CO₂.
+    """)
+
+    st.markdown("#### Step 2 — What the Base (as-is) scenario pays for, each year")
+    st.markdown("""
+- **Fuel** — tonnes of LNG × price per tonne.
+- **EU ETS (carbon tax)** — tonnes of CO₂ × the carbon price that year. The price starts
+  at whatever you set and grows 3%/year, compounding. Only applies if the vessel is
+  EU-based — non-EU vessels pay €0 here.
+- **FuelEU penalty** — this isn't about *how much* CO₂ you emit, it's about how clean your
+  fuel is *per unit of energy*. LNG's GHG intensity is assumed to be **77 gCO₂eq/MJ**. The
+  EU's *target* intensity starts at 91.16 (2020 baseline) and ratchets down over time — by
+  2%, then 6%, then 14.5%, then 31%, then 62%, then 80% by 2050. As long as 77 stays below
+  the target, you pay nothing. Once the target drops below 77 (roughly around 2040), you're
+  suddenly out of compliance and pay a penalty proportional to the gap. This is why the
+  Base cost line doesn't rise smoothly — it's flat for years, then jumps once the target
+  catches up.
+- **IMO levy** (optional, off by default) — same shape as ETS but global, applying even to
+  non-EU vessels, and only active if you turn it on, since the real-world policy isn't
+  adopted yet.
+- **Fixed opex** — a flat annual cost of just running the FSRU, unrelated to fuel or carbon.
+
+Add all five up → that's the Base TCO for that year.
+    """)
+
+    st.markdown("#### Step 3 — What the CCC retrofit actually changes")
+    st.markdown("""
+Nothing happens until the **Install Year**. From then on, three things shift at once:
+
+1. **Less fuel is burned** — the Fuel Savings % (22% from the paper's waste-heat
+   integration) reduces fuel consumption directly. Less fuel burned also means less CO₂ is
+   *generated* in the first place — the fuel-savings effect and the capture-rate effect
+   are kept separate and multiplicative, not double-counted.
+2. **A slice of what's still generated gets captured** — the Capture Rate % removes that
+   fraction from the flue gas before it reaches the funnel.
+3. **What's left after capture is what counts against your taxes** — *if* regulators
+   credit captured CO₂ (the **Credit Captured CO2** toggle). This is the single biggest
+   assumption in the whole model: if true, ETS and FuelEU costs can drop close to zero; if
+   regulators never recognize stored CO₂ this way, you only benefit from the fuel savings,
+   not the tax avoidance.
+
+One physical nuance worth knowing: capture can only remove the CO₂ that comes from
+*burning* the fuel. It can't touch the emissions baked into producing and shipping the
+LNG in the first place. So even at 100% capture, the effective GHG intensity doesn't hit
+zero — it drops from 77 to about 20 gCO₂eq/MJ. That's realistic, not a rounding error.
+
+Two new costs also appear from the install year on:
+
+- **CCC maintenance** — a flat 3%/year of whatever the machine cost.
+- **CO₂ disposal/transport cost** — every tonne *physically* captured has to go somewhere,
+  regardless of whether regulators credit it for tax purposes. This cost always applies
+  once the system is capturing CO₂.
+
+Add up (adjusted ETS + adjusted FuelEU + IMO if on + adjusted opex + maintenance +
+disposal) → that's the CCC TCO for that year.
+    """)
+
+    st.markdown("#### Step 4 — Turning yearly savings into an investment answer")
+    st.markdown("""
+- **Annual savings** = Base TCO − CCC TCO, for each year.
+- **Cash flow** = annual savings, except in the install year, where the full CAPEX is also
+  subtracted in one lump — that's when you actually pay for the machine.
+- **Cumulative cash flow** — a running total of cash flow from the install year onward.
+  The first year it turns positive is the **Simple Payback Year**.
+- **Discounted cash flow** — the same thing, but each future year's cash is shrunk by the
+  WACC before adding it up, since €1 five years from now is worth less than €1 today. When
+  *that* running total turns positive, that's the **Discounted Payback Year** — always the
+  same year or later than the simple one.
+- **NPV** — the sum of all discounted cash flows from install year to 2050. Positive means
+  the investment is worth more than it costs, in today's money.
+- **IRR** — the discount rate at which NPV would be exactly zero. Roughly: the higher the
+  IRR, the better the return relative to the size of the investment. If the very first
+  year's savings already nearly cover the whole CAPEX, IRR can shoot into the hundreds of
+  percent — that's mathematically real but not a very useful number at that point; NPV and
+  payback year are more reliable to read in that situation.
+    """)
+
+    st.info(
+        "In short: physics converts CO₂ into fuel and energy numbers → regulations convert "
+        "those into euros, year by year, for two parallel versions of the same vessel → the "
+        "gap between them becomes a cash-flow story → standard finance turns that story into "
+        "NPV, IRR, and a payback year."
+    )

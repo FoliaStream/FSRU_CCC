@@ -1,0 +1,11 @@
+streamlit>=1.28.0
+plotly>=5.17.0
+numpy>=1.24.0
+pandas>=2.0.0
+pyyaml>=6.0
+requests>=2.31.0
+pycountry>=22.3.5
+loguru>=0.7.0
+scipy>=1.10.0
+streamlit-plotly-events>=0.0.4
+streamlit-option-menu>=0.3.6

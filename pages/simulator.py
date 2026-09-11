@@ -208,6 +208,63 @@ with st.container(border=True):
             help="If enabled, applies the draft global maritime carbon levy starting in 2028 (~$100/tCO2e)."
         )
 
+# --- ADVANCED COST ASSUMPTIONS (previously hardcoded) ---
+with st.expander("Advanced Cost & Market Assumptions", expanded=False):
+    st.caption(
+        "Adjust these to stress-test the sensitivity of the results to fuel price volatility, inflation, and fuel source."
+    )
+    col1, col2 = st.columns(2)
+
+    with col1:
+        lng_price = st.number_input(
+            "LNG Price (€/tonne)",
+            min_value=100.0,
+            max_value=2000.0,
+            value=550.0,
+            step=10.0,
+            help="Bunker price assumption for LNG fuel in the start year."
+        )
+        lng_price_escalation = st.slider(
+            "LNG Price Annual Escalation (%)",
+            min_value=-10.0,
+            max_value=15.0,
+            value=0.0,
+            step=0.5,
+            help="Annual compounding growth (or decline) in LNG price. 0% keeps it flat, matching real fuel price volatility risk."
+        ) / 100.0
+        carbon_price_escalation = st.slider(
+            "EU ETS Carbon Price Annual Escalation (%)",
+            min_value=0.0,
+            max_value=15.0,
+            value=3.0,
+            step=0.5,
+            help="Annual compounding growth rate applied to the starting EU ETS carbon price."
+        ) / 100.0
+
+    with col2:
+        lng_ghg_intensity = st.slider(
+            "LNG Well-to-Wake GHG Intensity (gCO₂eq/MJ)",
+            min_value=60.0,
+            max_value=95.0,
+            value=77.0,
+            step=1.0,
+            help="Lifecycle GHG intensity of the LNG fuel supply. Varies by supply source (e.g. pipeline vs. shipped, upstream methane leakage)."
+        )
+
+    st.info(
+        "**Fixed FSRU opex is applied equally to both scenarios** so it "
+        "cancels out of NPV, IRR, Payback, and Total Savings regardless of its value. "
+        "**Strong assumption:** the model treats the retrofit as opex-neutral — extra crew, "
+        "inspections, or insurance from the retrofit aren't captured. Held flat at €5M/year."
+    )
+
+# Fixed opex assumption — see note above. Not user-adjustable by design: it cancels out of
+# every investment metric since it's applied identically to both scenarios. If you need to
+# model a retrofit-specific opex increase, that requires a genuine modeling change (making
+# opex asymmetric between scenarios), not just changing this constant.
+base_opex = 5.0            # € Million/year, flat, identical in both scenarios
+opex_escalation = 0.0      # kept at 0% for the same reason — see note above
+
 # --- RUN FINANCIAL MODEL ---
 results = fsru_ccc_investment_model(
     annual_co2_tonnes=vessel_data['Estimate CO2'],
@@ -221,7 +278,13 @@ results = fsru_ccc_investment_model(
     discount_rate=wacc,
     credit_captured_co2=credit_captured_co2,
     include_imo_nzf=include_imo_nzf,
-    co2_disposal_cost=co2_disposal_cost  # NEW
+    co2_disposal_cost=co2_disposal_cost,  # NEW
+    lng_price_eur_per_tonne=lng_price,                    # NEW: was hardcoded 550.0
+    lng_price_escalation=lng_price_escalation,            # NEW: was flat (0%)
+    base_fsru_opex_eur=base_opex * 1_000_000.0,           # NEW: was hardcoded 5,000,000
+    opex_escalation=opex_escalation,                      # NEW: was flat (0%)
+    carbon_price_escalation=carbon_price_escalation,      # NEW: was hardcoded 3%
+    fuel_ghg_intensity_gco2eq_per_mj=lng_ghg_intensity,   # NEW: was hardcoded 77.0
 )
 
 df_proj = results['projections']
@@ -336,6 +399,36 @@ with tab1:
         annotation_text="CCC System Retrofitted", 
         annotation_position="top left"
     )
+
+    # Highlight payback years, if achieved
+    if payback_simple is not None and payback_simple == payback_disc:
+        fig.add_vline(
+            x=payback_simple,
+            line_width=2,
+            line_dash="dot",
+            line_color="#1565c0",
+            annotation_text="Payback (Simple & Discounted)",
+            annotation_position="bottom right"
+        )
+    else:
+        if payback_simple is not None:
+            fig.add_vline(
+                x=payback_simple,
+                line_width=2,
+                line_dash="dot",
+                line_color="#1565c0",
+                annotation_text="Simple Payback",
+                annotation_position="bottom left"
+            )
+        if payback_disc is not None:
+            fig.add_vline(
+                x=payback_disc,
+                line_width=2,
+                line_dash="dot",
+                line_color="#6a1b9a",
+                annotation_text="Discounted Payback",
+                annotation_position="bottom right"
+            )
     
     fig.update_layout(
         # title=f"Annual TCO Path: Carbon Capture System Retrofit Drastically Avoids Taxes",
@@ -503,4 +596,19 @@ disposal) → that's the CCC TCO for that year.
         "those into euros, year by year, for two parallel versions of the same vessel → the "
         "gap between them becomes a cash-flow story → standard finance turns that story into "
         "NPV, IRR, and a payback year."
+    )
+
+    st.markdown("#### A strong assumption worth knowing: fixed opex is retrofit-neutral")
+    st.warning(
+        "The model assumes the CCC retrofit changes fuel and carbon costs, but leaves "
+        "**fixed FSRU opex** — crew, mooring, insurance, general upkeep — completely "
+        "unaffected. That value is applied identically to both the Base and CCC scenarios, "
+        "so it cancels out of every headline number (NPV, IRR, Payback Year, Total Savings) "
+        "no matter what it's set to. It isn't adjustable in this tool for exactly that "
+        "reason — a slider that can't move the answer would be misleading. In reality, a "
+        "retrofit of this scale could plausibly require additional crew training, more "
+        "frequent inspections, or higher insurance premiums beyond the CCC-specific "
+        "maintenance the model already accounts for. If that's a real cost in practice, "
+        "this model currently doesn't capture it, and the investment case would look "
+        "somewhat weaker than shown here."
     )

@@ -105,7 +105,9 @@ DEFAULT_ASSUMPTIONS = dict(
     end_year=2050,
     carbon_price_escalation=0.03,           # EU ETS price annual growth
     lng_price_eur_per_tonne=550.0,          # LNG bunker proxy price
+    lng_price_escalation=0.0,               # LNG price annual growth (0 = flat, matches prior behavior)
     base_fsru_opex_eur=5_000_000.0,         # fixed annual FSRU opex, non-fuel
+    opex_escalation=0.0,                    # opex annual growth / inflation (0 = flat, matches prior behavior)
     ccc_maint_pct=0.03,                     # CCC annual O&M, % of CAPEX
     discount_rate=0.08,                     # WACC for NPV / discounted payback
     lng_co2_factor_t_per_t=2.75,            # t CO2 / t LNG fuel
@@ -244,6 +246,8 @@ def fsru_ccc_investment_model(
     rows = []
     for yr in years:
         carbon_price = a["carbon_price_eur_per_t"] * (1 + a["carbon_price_escalation"]) ** (yr - a["start_year"])
+        lng_price_yr = a["lng_price_eur_per_tonne"] * (1 + a["lng_price_escalation"]) ** (yr - a["start_year"])
+        opex_yr = a["base_fsru_opex_eur"] * (1 + a["opex_escalation"]) ** (yr - a["start_year"])
         target_ghg = a["fueleu_baseline_gco2eq_per_mj"] * (1 - _fueleu_reduction(yr))
         imo_price_eur = a["imo_price_usd_per_t"] * a["usd_eur_fx"]
         imo_reduction = _imo_nzf_reduction(yr, a["imo_nzf_start_year"]) if a["include_imo_nzf"] else 0.0
@@ -251,7 +255,7 @@ def fsru_ccc_investment_model(
         # ---------------- BASE (as-is) ----------------
         base_fuel_t = baseline_fuel_t
         base_co2 = baseline_co2
-        base_fuel_cost = base_fuel_t * a["lng_price_eur_per_tonne"]
+        base_fuel_cost = base_fuel_t * lng_price_yr
         base_energy_mj = base_fuel_t * a["lng_lhv_mj_per_tonne"]
 
         base_ets = base_co2 * eu_scope * carbon_price
@@ -268,7 +272,15 @@ def fsru_ccc_investment_model(
             allowed_t = base_co2 * (1 - imo_reduction)
             base_imo = max(0.0, base_co2 - allowed_t) * imo_price_eur
 
-        base_opex = a["base_fsru_opex_eur"] + base_fuel_cost
+        # STRONG ASSUMPTION: base_fsru_opex_eur (fixed opex) is applied identically to
+        # both the Base and CCC scenarios below. Because it's the same in both, it
+        # mathematically cancels out of Annual_Savings, NPV, IRR, and Payback_Year
+        # regardless of its value or escalation rate. The model assumes the retrofit
+        # does not change baseline running costs (crew, mooring, insurance, etc.) —
+        # only fuel and carbon costs. If a retrofit realistically increases opex
+        # (e.g. added crew, more frequent inspections, higher insurance), this model
+        # does not capture that, and would understate the true cost of the retrofit.
+        base_opex = opex_yr + base_fuel_cost
         base_tco = base_ets + base_fueleu + base_imo + base_opex
 
         # ---------------- CCC retrofit ----------------
@@ -284,10 +296,10 @@ def fsru_ccc_investment_model(
         else:
             ccc_co2_net = ccc_co2_generated
 
-        ccc_fuel_cost = ccc_fuel_t * a["lng_price_eur_per_tonne"]
+        ccc_fuel_cost = ccc_fuel_t * lng_price_yr
         ccc_energy_mj = ccc_fuel_t * a["lng_lhv_mj_per_tonne"]
         ccc_maint = a["ccc_capex_eur"] * a["ccc_maint_pct"] if is_installed else 0.0
-        ccc_opex = a["base_fsru_opex_eur"] + ccc_fuel_cost + ccc_maint
+        ccc_opex = opex_yr + ccc_fuel_cost + ccc_maint
 
         ccc_ets = ccc_co2_net * eu_scope * carbon_price
 
